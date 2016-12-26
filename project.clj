@@ -7,6 +7,7 @@
                  [ring/ring-defaults "0.2.1"]
                  [yesql "0.5.3"]
                  [ring/ring-json "0.4.0"]
+                 [ring-cors "0.1.8"]
                  [org.postgresql/postgresql "9.4-1201-jdbc41"]]
   :plugins [[lein-ring "0.9.7"]]
   :ring {:handler lista.handler/app}
