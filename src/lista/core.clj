@@ -4,9 +4,14 @@
 (defn
   ^{:test (fn []
             (test/is (= (make-alternative "id" "name" "text" 123)
-                        {:id "id" :name "name" :text "text" :price 123 :chosen false})))}
-  make-alternative [id name text price]
-  {:id id :name name :text text :price price :chosen false})
+                        {:id "id" :name "name" :text "text" :price 123 :chosen false}))
+            (test/is (= (make-alternative "id" "name" "text" 123 true)
+                        {:id "id" :name "name" :text "text" :price 123 :chosen true})))}
+  make-alternative
+  ([id name text price]
+   (make-alternative id name text price false))
+  ([id name text price chosen]
+   {:id id :name name :text text :price price :chosen chosen}))
 
 (defn
   ^{:test (fn []

@@ -6,53 +6,59 @@
 (defn parse-int [s]
    (Integer. (re-find  #"\d+" s )))
 
+
+(defn make-thing-from-db [thing-from-db alternatives]
+  (let [thing (if (list? thing-from-db)
+                (first thing-from-db)
+                thing-from-db)]
+    (core/make-thing (:id thing)
+                     (:name thing)
+                     (:category thing)
+                     alternatives)))
+
+(defn make-alternative-from-db [alternative-from-db]
+  (let [alternative (if (list? alternative-from-db)
+                      (first alternative-from-db)
+                      alternative-from-db)]
+    (core/make-alternative (:id alternative)
+                           (:name alternative)
+                           (:text alternative)
+                           (:price alternative)
+                           (:chosen alternative))))
+
 (defn list-all-things []
   (let [all-things (db/select-all-things)
-        all-alternatives (db/select-alternatives-by-things {:thingids (map :id all-things)})]
+        all-alternatives (map make-alternative-from-db
+                              (db/select-alternatives-by-things {:thingids (map :id all-things)}))]
     (map (fn [thing]
-           (core/make-thing (:id thing)
-                            (:name thing)
-                            (:category thing)
-                            (filter (fn [alternative]
-                                      (= (:thing_id alternative)
-                                         (:id thing)))
-                                    all-alternatives)))
+           (make-thing-from-db thing
+                               (filter (fn [alternative]
+                                         (= (:thing_id alternative)
+                                            (:id thing)))
+                                       all-alternatives)))
          all-things)))
 
-(defn dispatch-alternative-update [alternative alternatives-in-db thing-id]
-  (if (not-any? (fn [alternative-in-db]
-                  (= (:id alternative)
-                     (:id alternative-in-db)))
-                alternatives-in-db)
-    ;; new alternative
-    (db/create-alternative! {:thingid thing-id
-                             :name (:name alternative)
-                             :text (:text alternative)
-                             :price (:price alternative)
-                             :chosen (:chosen alternative)})
-    
-    ;; existing alternative
-    (db/update-alternative! {:id (:id alternative)
-                             :name (:name alternative)
-                             :text (:text alternative)
-                             :price (:price alternative)
-                             :chosen (:chosen alternative)})))
-  
-(defn update-thing [thing]
-  (let [thing-id (parse-int (:id thing))
-        alternatives-in-db (db/select-alternatives-by-thing {:id thing-id})]
+(defn select-thing [id]
+  (let [thing (db/select-thing {:id (parse-int id)})
+        alternatives (db/select-alternatives-by-thing {:id (parse-int id)})]
+    (make-thing-from-db thing (map make-alternative-from-db alternatives))))
 
-    ;; add or update alternatives
-    (map (fn [alternative]
-           (dispatch-alternative-update alternative alternatives-in-db thing-id))
-         (:alternatives thing))
+(defn create-thing! [thing]
+  (do (db/create-thing! {:name (:name thing)
+                         :category (:category thing)})
+      (make-thing-from-db (db/select-thing-by-values {:name (:name thing)
+                                                      :category (:category thing)})
+                          [])))
 
-    ;; should any alternatives be removed?
-    (map (fn [alternative-to-remove]
-           (db/delete-alternative! {:id (:id alternative-to-remove)}))
-         (filter (fn [alternative-in-db]
-                   (not-any? (fn [alternative]
-                               (= (:id alternative)
-                                  (:id alternative-in-db)))
-                             (:alternatives thing)))
-                 alternatives-in-db))))
+(defn update-thing! [thing]
+  (do (db/update-thing! {:id (parse-int (:id thing))
+                         :name (:name thing)
+                         :category (:category thing)})
+      (select-thing (:id thing))))
+
+(defn delete-thing! [thing-id]
+  (db/delete-thing! {:id (parse-int thing-id)}))
+
+(defn select-alternative [alternative-id]
+  (make-alternative-from-db (db/select-alternative {:id (parse-int alternative-id)})))
+

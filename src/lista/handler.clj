@@ -7,28 +7,75 @@
             [ring.middleware.keyword-params :refer [wrap-keyword-params]]
             [lista.app :as app]))
 
-(defn list-things []
+(defn list-things [request]
   (response/header (response/response (app/list-all-things))
                    "Access-Control-Allow-Origin" "*"))
        
-(defn options-thing []
+(defn options-thing [request]
   (response/header (response/response "")
-                   "Allow" "GET PUT"))
+                   "Allow" "GET POST PATCH DELETE"))
 
-(defn update-thing [request & args]
-  (let [params (:params request)]
-    (response/response (app/update-thing params))))
-    
+(defn select-thing [request]
+  (response/response (app/select-thing (:id (:params request)))))
+
+(defn create-thing! [request]
+  (response/response (app/create-thing! (:params request))))
+
+(defn update-thing! [request]
+  (response/response (app/update-thing! (:params request))))
+
+(defn delete-thing! [request]
+  (response/response (app/delete-thing! (:id (:params request)))))
+
+(defn select-alternative [request]
+  (response/response (app/select-alternative (get-in request [:params :alternative-id]))))
+
+(defn create-alternative! [request]
+  (response/response (app/create-alternative! (get-in request [:params :thing-id])
+                                              (:params request))))
+
+(defn update-alternative! [request]
+  (response/response (app/update-alternative! (:params request))))
+
+(defn delete-alternative! [request]
+  (response/response (app/delete-alternative! (get-in request [:params :alternative-id]))))
+
+
+
 (defroutes app-routes
-  (GET "/thing"
-       [] (list-things))
-
   (OPTIONS "/thing/:id"
-           [id] (options-thing))
+           [id] options-thing)
+  
+  (GET "/thing"
+       [] list-things)
+  
+  (POST "/thing"
+        [] create-thing!)
 
-  (PUT "/thing/:id"
-       [id] update-thing)
+  (GET "/thing/:id"
+       [id] select-thing)
 
+  (PATCH "/thing/:id"
+         [id] update-thing!)
+
+  (DELETE "/thing/:id"
+          [id] delete-thing!)
+
+  (OPTIONS "/thing/:thing-id/alternative/:alternative-id"
+           [thing-id alternative-id] options-alternative)
+
+  (GET "/thing/:thid-id/alternative/:alternative-id"
+       [thing-id alternative-id] select-alternative)
+
+  (POST "/thing/:thid-id/alternative/:alternative-id"
+        [thing-id alternative-id] create-alternative!)
+
+  (PATCH "/thing/:thid-id/alternative/:alternative-id"
+         [thing-id alternative-id] update-alternative!)
+
+  (DELETE "/thing/:thid-id/alternative/:alternative-id"
+          [thing-id alternative-id] delete-alternative!)
+  
   (route/resources "/" {:root "build"})
   
   (route/not-found "Not Found"))
